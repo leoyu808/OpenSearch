@@ -15,6 +15,7 @@ package org.opensearch.threadpool;
 
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.OpenSearchExecutors;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.node.Node;
 
@@ -23,6 +24,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ThreadFactory;
 
 
 /**
@@ -101,8 +103,14 @@ public class ForkJoinExecutorBuilder extends ExecutorBuilder<ForkJoinExecutorBui
 
     ThreadPool.ExecutorHolder build(final ForkJoinExecutorBuilder.ForkJoinExecutorSettings settings, final ThreadContext threadContext) {
         int size = settings.size;
+        final ForkJoinPool.ForkJoinWorkerThreadFactory threadFactory = OpenSearchExecutors.daemonForkJoinThreadFactory(
+            OpenSearchExecutors.threadName(settings.nodeName, name())
+        );
         final ExecutorService executor = new ForkJoinPool(
-            size
+            size,
+            threadFactory,
+            null,
+            false
         );
         final ThreadPool.Info info = new ThreadPool.Info(
             name(),
