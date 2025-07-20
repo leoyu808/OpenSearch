@@ -75,6 +75,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -139,7 +140,8 @@ public class ThreadPool implements ReportingService<ThreadPoolInfo>, Scheduler {
         DIRECT("direct"),
         FIXED("fixed"),
         RESIZABLE("resizable"),
-        SCALING("scaling");
+        SCALING("scaling"),
+        FORKJOIN("forkjoin");
 
         private final String type;
 
@@ -856,7 +858,7 @@ public class ThreadPool implements ReportingService<ThreadPoolInfo>, Scheduler {
         public final Info info;
 
         ExecutorHolder(ExecutorService executor, Info info) {
-            assert executor instanceof OpenSearchThreadPoolExecutor || executor == DIRECT_EXECUTOR;
+            assert executor instanceof OpenSearchThreadPoolExecutor || executor instanceof ForkJoinPool || executor == DIRECT_EXECUTOR;
             this.executor = executor;
             this.info = info;
         }

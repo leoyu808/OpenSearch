@@ -56,6 +56,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinWorkerThread;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -382,6 +384,10 @@ public class OpenSearchExecutors {
         return new OpenSearchThreadFactory(namePrefix);
     }
 
+    public static OpenSearchForkJoinThreadFactory daemonForkJoinThreadFactory(String namePrefix) {
+        return new OpenSearchForkJoinThreadFactory(namePrefix);
+    }
+
     /**
      * A thread factory
      *
@@ -407,6 +413,33 @@ public class OpenSearchExecutors {
             return t;
         }
 
+    }
+
+    static class OpenSearchForkJoinThreadFactory implements ForkJoinPool.ForkJoinWorkerThreadFactory {
+        final ThreadGroup group;
+        final AtomicInteger threadNumber = new AtomicInteger(1);
+        final String namePrefix;
+
+        @SuppressWarnings("removal")
+        OpenSearchForkJoinThreadFactory(String namePrefix) {
+            this.namePrefix = namePrefix;
+            SecurityManager s = System.getSecurityManager();
+            group = (s != null) ? s.getThreadGroup() : Thread.currentThread().getThreadGroup();
+        }
+
+        @Override
+        public ForkJoinWorkerThread newThread(ForkJoinPool pool) {
+            OpenSearchForkJoinWorkerThread t = new OpenSearchForkJoinWorkerThread(group, pool, false);
+            t.setName(namePrefix + "[FJT#" + threadNumber.getAndIncrement() + "]");
+            t.setDaemon(true);
+            return t;
+        }
+
+        private static final class OpenSearchForkJoinWorkerThread extends ForkJoinWorkerThread {
+            private OpenSearchForkJoinWorkerThread(ThreadGroup group, ForkJoinPool pool, boolean preserveThreadLocals) {
+                super(group, pool, preserveThreadLocals);
+            }
+        }
     }
 
     /**
